@@ -13,6 +13,28 @@ const Auth = () => {
     password: "",
   });
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isLogin) {
+      console.log("Login data:", {
+        email: formData.email,
+        password: formData.password,
+      });
+      alert("Login successful!");
+    } else {
+      console.log("Sign up data:", formData);
+      alert("Sign up successful!");
+    }
+  };
+
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setFormData({ firstName: "", lastName: "", email: "", password: "" });
@@ -24,7 +46,7 @@ const Auth = () => {
         <div className="header-text">{isLogin ? "Login" : "Sign Up"}</div>
       </div>
 
-      <form className="form-container">
+      <form className="form-container" onSubmit={handleSubmit}>
         {!isLogin && (
           <>
             <div className="form-group">
@@ -34,6 +56,7 @@ const Auth = () => {
                 name="firstName"
                 placeholder="First Name"
                 value={formData.firstName}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -44,6 +67,7 @@ const Auth = () => {
                 name="lastName"
                 placeholder="Last Name"
                 value={formData.lastName}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -56,6 +80,7 @@ const Auth = () => {
             name="email"
             placeholder="Email"
             value={formData.email}
+            onChange={handleInputChange}
             required
           />
         </div>
@@ -66,6 +91,7 @@ const Auth = () => {
             name="password"
             placeholder="Password"
             value={formData.password}
+            onChange={handleInputChange}
             required
           />
         </div>
