@@ -71,3 +71,24 @@
 .submit-btn:hover {
   background: #0056b3;
 }
+
+.toggle-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.toggle-container p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.toggle-link {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.toggle-link:hover {
+  color: #0056b3;
+}
