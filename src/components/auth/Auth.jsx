@@ -4,7 +4,7 @@ import user_icon from "../assets/person.png";
 import email_icon from "../assets/email.png";
 import password_icon from "../assets/password.png";
 
-const Auth = () => {
+const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -29,9 +29,11 @@ const Auth = () => {
         password: formData.password,
       });
       alert("Login successful!");
+      onLogin();
     } else {
       console.log("Sign up data:", formData);
       alert("Sign up successful!");
+      onLogin();
     }
   };
 
