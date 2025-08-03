@@ -31,6 +31,12 @@ const TaskDashboard = ({ onLogout }) => {
     title: "",
     content: "",
   });
+  const [editingTask, setEditingTask] = useState(null);
+  const [editTask, setEditTask] = useState({
+    title: "",
+    content: "",
+    completed: false,
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -56,6 +62,48 @@ const TaskDashboard = ({ onLogout }) => {
   const cancelAdd = () => {
     setNewTask({ title: "", content: "" });
     setShowAddForm(false);
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditTask((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === editingTask.id ? { ...task, ...editTask } : task
+      )
+    );
+    setEditingTask(null);
+    setEditTask({ title: "", content: "", completed: false });
+    alert("Task updated successfully!");
+  };
+
+  const startEdit = (task) => {
+    setEditingTask(task);
+    setEditTask({
+      title: task.title,
+      content: task.content,
+      completed: task.completed,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingTask(null);
+    setEditTask({ title: "", content: "", completed: false });
+  };
+
+  const toggleTaskStatus = (taskId) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      )
+    );
   };
 
   return (
@@ -118,6 +166,62 @@ const TaskDashboard = ({ onLogout }) => {
         </div>
       )}
 
+      {/* Edit Task Form */}
+      {editingTask && (
+        <div className="task-form-overlay">
+          <div className="task-form">
+            <div className="form-header">
+              <h2>Edit Task</h2>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="title"
+                  placeholder="Task Title"
+                  value={editTask.title}
+                  onChange={handleEditInputChange}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <textarea
+                  name="content"
+                  placeholder="Task Description"
+                  rows="4"
+                  value={editTask.content}
+                  onChange={handleEditInputChange}
+                  required
+                />
+              </div>
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="completed"
+                    checked={editTask.completed}
+                    onChange={handleEditInputChange}
+                  />
+                  Mark as completed
+                </label>
+              </div>
+              <div className="form-buttons">
+                <button type="submit" className="save-btn">
+                  Update Task
+                </button>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={cancelEdit}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Tasks List - Grid View */}
       <div className="tasks-container">
         <h2>Your Tasks</h2>
@@ -135,6 +239,14 @@ const TaskDashboard = ({ onLogout }) => {
               >
                 <div className="task-header">
                   <h3>{task.title}</h3>
+                  <div className="task-actions">
+                    <button
+                      className="edit-btn"
+                      onClick={() => startEdit(task)}
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
 
                 <div className="task-content">
@@ -143,11 +255,11 @@ const TaskDashboard = ({ onLogout }) => {
 
                 <div className="task-footer">
                   <div className="task-status">
-                    <label>
+                    <label onClick={() => toggleTaskStatus(task.id)}>
                       <input
                         type="checkbox"
                         checked={task.completed}
-                        readOnly
+                        onChange={() => toggleTaskStatus(task.id)}
                       />
                       {task.completed ? "Completed" : "Pending"}
                     </label>
