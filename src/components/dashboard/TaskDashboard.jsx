@@ -106,6 +106,13 @@ const TaskDashboard = ({ onLogout }) => {
     );
   };
 
+  const deleteTask = (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
+      alert("Task deleted successfully!");
+    }
+  };
+
   return (
     <div className="dashboard-container">
       {/* Header */}
@@ -245,6 +252,12 @@ const TaskDashboard = ({ onLogout }) => {
                       onClick={() => startEdit(task)}
                     >
                       Edit
+                    </button>
+                    <button
+                      className="delete-btn"
+                      onClick={() => deleteTask(task.id)}
+                    >
+                      Delete
                     </button>
                   </div>
                 </div>
