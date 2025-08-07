@@ -4,6 +4,7 @@ import "./auth.css";
 import user_icon from "../assets/person.png";
 import email_icon from "../assets/email.png";
 import password_icon from "../assets/password.png";
+import authService from "../../services/authService";
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(false);
@@ -47,7 +48,10 @@ const Auth = ({ onLogin }) => {
         );
 
         if (response.status === 200) {
-          alert("Login successful!");
+          const { user, access_token } = response.data;
+          authService.storeAuthData({ user, access_token });
+
+          alert(`Welcome back, ${user.firstName}!`);
           onLogin();
         }
       } else {
@@ -69,7 +73,12 @@ const Auth = ({ onLogin }) => {
         );
 
         if (response.status === 201) {
-          alert("Registration successful!");
+          const { user, access_token } = response.data;
+          authService.storeAuthData({ user, access_token });
+
+          alert(
+            `Welcome, ${user.firstName}! Your account has been created successfully.`
+          );
           onLogin();
         }
       }
