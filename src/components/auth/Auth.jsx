@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import "./auth.css";
 import user_icon from "../assets/person.png";
 import email_icon from "../assets/email.png";
@@ -6,6 +7,8 @@ import password_icon from "../assets/password.png";
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,25 +24,67 @@ const Auth = ({ onLogin }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      console.log("Login data:", {
-        email: formData.email,
-        password: formData.password,
-      });
-      alert("Login successful!");
-      onLogin();
-    } else {
-      console.log("Sign up data:", formData);
-      alert("Sign up successful!");
-      onLogin();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      if (isLogin) {
+        console.log("Login data:", {
+          email: formData.email,
+          password: formData.password,
+        });
+        alert("Login successful!");
+        onLogin();
+      } else {
+        const registrationData = {
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+        };
+
+        const response = await axios.post(
+          "http://localhost:3000/api/auth/register",
+          registrationData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.status === 201) {
+          alert("Registration successful!");
+          onLogin();
+        }
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+
+      if (error.response) {
+        if (error.response.status === 400) {
+          setError(
+            "Invalid request. Please check your information and try again."
+          );
+        } else {
+          setError("Registration failed. Please try again.");
+        }
+      } else if (error.request) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setFormData({ firstName: "", lastName: "", email: "", password: "" });
+    setError("");
   };
 
   return (
@@ -47,6 +92,22 @@ const Auth = ({ onLogin }) => {
       <div className="header">
         <div className="header-text">{isLogin ? "Login" : "Sign Up"}</div>
       </div>
+
+      {error && (
+        <div
+          className="error-message"
+          style={{
+            color: "#ff4444",
+            backgroundColor: "#ffe6e6",
+            padding: "10px",
+            borderRadius: "5px",
+            margin: "10px 0",
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <form className="form-container" onSubmit={handleSubmit}>
         {!isLogin && (
@@ -98,8 +159,8 @@ const Auth = ({ onLogin }) => {
           />
         </div>
         <div className="submit-container">
-          <button type="submit" className="submit-btn">
-            {isLogin ? "Login" : "Sign Up"}
+          <button type="submit" className="submit-btn" disabled={isLoading}>
+            {isLoading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </button>
         </div>
       </form>
