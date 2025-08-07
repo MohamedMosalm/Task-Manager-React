@@ -1,30 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./dashboard.css";
+import tasksService from "../../services/tasksService";
+import authService from "../../services/authService";
 
 const TaskDashboard = ({ onLogout }) => {
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: "Complete project documentation",
-      content: "Write comprehensive documentation for the new feature",
-      completed: false,
-      userId: 1,
-    },
-    {
-      id: 2,
-      title: "Review code changes",
-      content: "Review and approve pending pull requests",
-      completed: true,
-      userId: 1,
-    },
-    {
-      id: 3,
-      title: "Fix login bug",
-      content: "Resolve authentication issue in production",
-      completed: false,
-      userId: 1,
-    },
-  ]);
+  const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTask, setNewTask] = useState({
@@ -38,6 +21,36 @@ const TaskDashboard = ({ onLogout }) => {
     completed: false,
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const userData = authService.getUser();
+        if (userData) {
+          setUser(userData);
+        }
+
+        const tasksData = await tasksService.getAllTasks();
+        setTasks(tasksData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setError(error.message || "Failed to load tasks");
+
+        // If authentication error, logout user
+        if (error.message.includes("Authentication required")) {
+          authService.clearAuthData();
+          onLogout();
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [onLogout]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewTask((prev) => ({
@@ -46,17 +59,29 @@ const TaskDashboard = ({ onLogout }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const task = {
-      title: newTask.title,
-      content: newTask.content,
-      completed: false,
-    };
-    setTasks((prev) => [...prev, task]);
-    setNewTask({ title: "", content: "" });
-    setShowAddForm(false);
-    alert("Task created successfully!");
+    try {
+      setError("");
+
+      if (!newTask.title?.trim() || !newTask.content?.trim()) {
+        setError("Both title and content are required.");
+        return;
+      }
+
+      const taskData = {
+        title: newTask.title.trim(),
+        content: newTask.content.trim(),
+      };
+
+      const createdTask = await tasksService.createTask(taskData);
+      setTasks((prev) => [...prev, createdTask]);
+      setNewTask({ title: "", content: "" });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      setError(error.message || "Failed to create task");
+    }
   };
 
   const cancelAdd = () => {
@@ -72,16 +97,23 @@ const TaskDashboard = ({ onLogout }) => {
     }));
   };
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === editingTask.id ? { ...task, ...editTask } : task
-      )
-    );
-    setEditingTask(null);
-    setEditTask({ title: "", content: "", completed: false });
-    alert("Task updated successfully!");
+    try {
+      setError("");
+      const updatedTask = await tasksService.updateTask(
+        editingTask.id,
+        editTask
+      );
+      setTasks((prev) =>
+        prev.map((task) => (task.id === editingTask.id ? updatedTask : task))
+      );
+      setEditingTask(null);
+      setEditTask({ title: "", content: "", completed: false });
+    } catch (error) {
+      console.error("Error updating task:", error);
+      setError(error.message || "Failed to update task");
+    }
   };
 
   const startEdit = (task) => {
@@ -98,18 +130,34 @@ const TaskDashboard = ({ onLogout }) => {
     setEditTask({ title: "", content: "", completed: false });
   };
 
-  const toggleTaskStatus = (taskId) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
+  const toggleTaskStatus = async (taskId) => {
+    try {
+      setError("");
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        const updateData = {
+          completed: !task.completed,
+        };
+
+        const updatedTask = await tasksService.updateTask(taskId, updateData);
+        setTasks((prev) =>
+          prev.map((task) => (task.id === taskId ? updatedTask : task))
+        );
+      }
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      setError(error.message || "Failed to update task status");
+    }
   };
 
-  const deleteTask = (taskId) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
+  const deleteTask = async (taskId) => {
+    try {
+      setError("");
+      await tasksService.deleteTask(taskId);
       setTasks((prev) => prev.filter((task) => task.id !== taskId));
-      alert("Task deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      setError(error.message || "Failed to delete task");
     }
   };
 
@@ -117,7 +165,10 @@ const TaskDashboard = ({ onLogout }) => {
     <div className="dashboard-container">
       {/* Header */}
       <div className="dashboard-header">
-        <h1>Task Dashboard</h1>
+        <div>
+          <h1>Task Dashboard</h1>
+          {user && <p>Welcome back, {user.firstName}!</p>}
+        </div>
         <div className="header-buttons">
           <button className="add-task-btn" onClick={() => setShowAddForm(true)}>
             Add Task
@@ -229,11 +280,39 @@ const TaskDashboard = ({ onLogout }) => {
         </div>
       )}
 
+      {/* Error Display */}
+      {error && (
+        <div
+          className="error-message"
+          style={{
+            color: "#ff4444",
+            backgroundColor: "#ffe6e6",
+            padding: "10px",
+            borderRadius: "5px",
+            margin: "10px 0",
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Tasks List - Grid View */}
       <div className="tasks-container">
         <h2>Your Tasks</h2>
 
-        {tasks.length === 0 ? (
+        {isLoading ? (
+          <div
+            className="loading-message"
+            style={{
+              textAlign: "center",
+              padding: "20px",
+              fontSize: "16px",
+            }}
+          >
+            Loading tasks...
+          </div>
+        ) : tasks.length === 0 ? (
           <div className="no-tasks">
             <p>No tasks found.</p>
           </div>

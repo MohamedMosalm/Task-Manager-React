@@ -1,11 +1,16 @@
 import React, { useState } from "react";
+import axios from "axios";
 import "./auth.css";
 import user_icon from "../assets/person.png";
 import email_icon from "../assets/email.png";
 import password_icon from "../assets/password.png";
+import authService from "../../services/authService";
+import config from "../../config/config";
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,25 +26,112 @@ const Auth = ({ onLogin }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      console.log("Login data:", {
-        email: formData.email,
-        password: formData.password,
-      });
-      alert("Login successful!");
-      onLogin();
-    } else {
-      console.log("Sign up data:", formData);
-      alert("Sign up successful!");
-      onLogin();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      if (isLogin) {
+        const loginData = {
+          email: formData.email,
+          password: formData.password,
+        };
+
+        const response = await axios.post(
+          `${config.API_BASE_URL}/api/auth/login`,
+          loginData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          const { user, access_token } = response.data;
+          authService.storeAuthData({ user, access_token });
+
+          onLogin();
+        }
+      } else {
+        const registrationData = {
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+        };
+
+        const response = await axios.post(
+          `${config.API_BASE_URL}/api/auth/register`,
+          registrationData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.status === 201) {
+          const { user, access_token } = response.data;
+          authService.storeAuthData({ user, access_token });
+
+          onLogin();
+        }
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+
+      if (error.response) {
+        const status = error.response.status;
+
+        if (isLogin) {
+          // Login-specific error messages
+          switch (status) {
+            case 400:
+              setError(
+                "Invalid request. Please check your email and password format."
+              );
+              break;
+            case 401:
+              setError(
+                "Invalid credentials. Please check your email and password."
+              );
+              break;
+            case 404:
+              setError(
+                "User not found. Please check your email or sign up for a new account."
+              );
+              break;
+            default:
+              setError("Login failed. Please try again.");
+          }
+        } else {
+          // Registration-specific error messages
+          switch (status) {
+            case 400:
+              setError(
+                "Invalid request. Please check your information and try again."
+              );
+              break;
+            default:
+              setError("Registration failed. Please try again.");
+          }
+        }
+      } else if (error.request) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setFormData({ firstName: "", lastName: "", email: "", password: "" });
+    setError("");
   };
 
   return (
@@ -47,6 +139,22 @@ const Auth = ({ onLogin }) => {
       <div className="header">
         <div className="header-text">{isLogin ? "Login" : "Sign Up"}</div>
       </div>
+
+      {error && (
+        <div
+          className="error-message"
+          style={{
+            color: "#ff4444",
+            backgroundColor: "#ffe6e6",
+            padding: "10px",
+            borderRadius: "5px",
+            margin: "10px 0",
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <form className="form-container" onSubmit={handleSubmit}>
         {!isLogin && (
@@ -98,8 +206,8 @@ const Auth = ({ onLogin }) => {
           />
         </div>
         <div className="submit-container">
-          <button type="submit" className="submit-btn">
-            {isLogin ? "Login" : "Sign Up"}
+          <button type="submit" className="submit-btn" disabled={isLoading}>
+            {isLoading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </button>
         </div>
       </form>
