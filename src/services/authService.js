@@ -1,21 +1,31 @@
+import config from "../config/config";
+
 export const authService = {
   storeAuthData: (authData) => {
-    localStorage.setItem("access_token", authData.access_token);
-    localStorage.setItem("user", JSON.stringify(authData.user));
+    localStorage.setItem(config.TOKEN_STORAGE_KEY, authData.access_token);
+    localStorage.setItem(
+      config.USER_STORAGE_KEY,
+      JSON.stringify(authData.user)
+    );
   },
 
   getToken: () => {
-    return localStorage.getItem("access_token");
+    return localStorage.getItem(config.TOKEN_STORAGE_KEY);
   },
 
   getUser: () => {
-    const userData = localStorage.getItem("user");
+    const userData = localStorage.getItem(config.USER_STORAGE_KEY);
     return userData ? JSON.parse(userData) : null;
   },
 
   clearAuthData: () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("user");
+    localStorage.removeItem(config.TOKEN_STORAGE_KEY);
+    localStorage.removeItem(config.USER_STORAGE_KEY);
+  },
+
+  getAuthHeaders: () => {
+    const token = authService.getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
   },
 };
 
