@@ -5,6 +5,7 @@ import user_icon from "../assets/person.png";
 import email_icon from "../assets/email.png";
 import password_icon from "../assets/password.png";
 import authService from "../../services/authService";
+import config from "../../config/config";
 
 const Auth = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(false);
@@ -38,7 +39,7 @@ const Auth = ({ onLogin }) => {
         };
 
         const response = await axios.post(
-          "http://localhost:3000/api/auth/login",
+          `${config.API_BASE_URL}/api/auth/login`,
           loginData,
           {
             headers: {
@@ -51,7 +52,6 @@ const Auth = ({ onLogin }) => {
           const { user, access_token } = response.data;
           authService.storeAuthData({ user, access_token });
 
-          alert(`Welcome back, ${user.firstName}!`);
           onLogin();
         }
       } else {
@@ -63,7 +63,7 @@ const Auth = ({ onLogin }) => {
         };
 
         const response = await axios.post(
-          "http://localhost:3000/api/auth/register",
+          `${config.API_BASE_URL}/api/auth/register`,
           registrationData,
           {
             headers: {
@@ -76,9 +76,6 @@ const Auth = ({ onLogin }) => {
           const { user, access_token } = response.data;
           authService.storeAuthData({ user, access_token });
 
-          alert(
-            `Welcome, ${user.firstName}! Your account has been created successfully.`
-          );
           onLogin();
         }
       }
