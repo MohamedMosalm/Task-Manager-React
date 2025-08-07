@@ -31,12 +31,25 @@ const Auth = ({ onLogin }) => {
 
     try {
       if (isLogin) {
-        console.log("Login data:", {
+        const loginData = {
           email: formData.email,
           password: formData.password,
-        });
-        alert("Login successful!");
-        onLogin();
+        };
+
+        const response = await axios.post(
+          "http://localhost:3000/api/auth/login",
+          loginData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          alert("Login successful!");
+          onLogin();
+        }
       } else {
         const registrationData = {
           email: formData.email,
@@ -64,12 +77,40 @@ const Auth = ({ onLogin }) => {
       console.error("Authentication error:", error);
 
       if (error.response) {
-        if (error.response.status === 400) {
-          setError(
-            "Invalid request. Please check your information and try again."
-          );
+        const status = error.response.status;
+
+        if (isLogin) {
+          // Login-specific error messages
+          switch (status) {
+            case 400:
+              setError(
+                "Invalid request. Please check your email and password format."
+              );
+              break;
+            case 401:
+              setError(
+                "Invalid credentials. Please check your email and password."
+              );
+              break;
+            case 404:
+              setError(
+                "User not found. Please check your email or sign up for a new account."
+              );
+              break;
+            default:
+              setError("Login failed. Please try again.");
+          }
         } else {
-          setError("Registration failed. Please try again.");
+          // Registration-specific error messages
+          switch (status) {
+            case 400:
+              setError(
+                "Invalid request. Please check your information and try again."
+              );
+              break;
+            default:
+              setError("Registration failed. Please try again.");
+          }
         }
       } else if (error.request) {
         setError("Network error. Please check your connection and try again.");
